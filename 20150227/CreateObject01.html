@@ -1,0 +1,541 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <script type="text/javascript" src="../Scripts/jquery-1.11.2.js"></script>
+    <script type="text/javascript" src="../Scripts/MyUtility.js"></script>
+    <script type="text/javascript">
+
+        // =================================================
+        // 以 Object Literal 的方式建立物件
+        // =================================================
+        function createByObjectLiteral() {
+            /// <summary>利用 Object Literal 建立物件 (有點類似 C# 的 anonymous 物件) </summary>
+            var empty = {};                   // An object with no properties (Object.prototype)
+            var point = { x: 0, y: 0 };     // Two properties
+            var point2 = { x: point.x, y: point.y + 1 };        // More complex values
+            var book = {
+                "main title": "JavaScript",                           // 屬性名稱含有 空白, "-", 或 保留字,,
+                'sub-title': "The Definitive Guide",            // 必須以雙引號括住
+                "for": "all audiences",                                 //
+                author: {                                                       // 屬性本身為子物件
+                    firstname: "David",                                 //
+                    surname: "Flanagan"                             //
+                },
+                //出版商資訊
+                publisher: {
+                    name: "O'Reilly",
+                    pressContacts: ["North America", "Japan", "Taiwan"]        //陣列也是物件
+                },
+                email: "maureen@oreilly.com"
+            }
+
+            document.write("<pre>");
+            iterateObjectProperties(empty);
+            document.write("</pre>");
+
+            document.write("<pre>");
+            iterateObjectProperties(point);
+            document.write("</pre>");
+
+            document.write("<pre>");
+            iterateObjectProperties(point2);
+            document.write("</pre>");
+
+            document.write("<pre>");
+            iterateObjectProperties(book);
+            document.write("</pre>");
+
+            //輸出結果:
+            //31:47.830 obj[x] = 0
+            //31:47.830 obj[y] = 0
+
+            //31:47.830 obj[x] = 0
+            //31:47.831 obj[y] = 1
+
+            //31:47.831 obj[main title] = JavaScript
+            //31:47.831 obj[sub-title] = The Definitive Guide
+            //31:47.831 obj[for] = all audiences
+            //31:47.831 obj[author] = [object Object]
+            //31:47.832         obj[firstname] = David
+            //31:47.832         obj[surname] = Flanagan
+            //31:47.832 obj[publisher] = [object Object]
+            //31:47.832         obj[name] = O'Reilly
+            //31:47.832         obj[pressContacts] = North America,Japan,Taiwan
+            //31:47.833             obj[0] = North America
+            //31:47.833             obj[1] = Japan
+            //31:47.833             obj[2] = Taiwan
+            //31:47.833 obj[email] = maureen@oreilly.com
+        }
+
+        // =================================================
+        // 以 Constructor Function 的方式建立物件
+        // =================================================
+        function createByConstructor01() {
+            /// <summary>利用 new 建立物件後, 再新增該物件的屬性</summary>
+            var o = new Object();              // Create an empty object: same as {}.
+            var a = new Array();                // Create an empty array: same as [].
+            var d = new Date();                 // Create a Date object representing the current time
+            var r = new RegExp("js");       // Create a RegExp object for pattern matching.
+
+            var objCard = new Object();     // objCard 係以 Object 為範本, 建立一個物件
+            objCard.name = "Jasper";        // 加入專屬於 objCard 的屬性
+            objCard.age = 47;
+            objCard.phones = ["02-2123-4567", "02-2321-7654"];
+            objCard.email = "jasper@abc.com";
+
+            document.write("<pre>");
+            iterateObjectProperties(objCard);
+            document.write("</pre>");
+
+            //輸出結果:
+            // 56:59.116 obj[name] = Jasper
+            // 56:59.131 obj[age] = 47
+            // 56:59.147 obj[phones] = 02-2123-4567,02-2321-7654
+            // 56:59.159 	    obj[0] = 02-2123-4567
+            // 56:59.175 	    obj[1] = 02-2321-7654
+            // 56:59.189 obj[email] = jasper@abc.com
+        }
+
+        // =================================================
+        // 以 Constructor Function 的方式建立物件
+        // =================================================
+        function createByConstructor02() {
+            /// <summary>利用 constructor function (類似 Class) + new 建立物件 </summary>
+
+            // ---------------- 較單純的 (帶一個簡單的 method) -----------------------
+            function Shape(color, borderThickness) {
+                this.color = color;
+                this.borderThickness = borderThickness;
+                this.describe = function () {
+                    document.write("<pre>");
+                    dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+                    document.write("</pre>");
+                }
+            }
+            var shape = new Shape("red", 2.0);
+            shape.describe();
+
+            document.write("<pre>");
+            iterateObjectProperties(shape);
+            document.write("</pre>");
+
+            // ---------------- 較複雜的 -----------------------
+            function Phones(office, mobiles) {
+                ///<summary>定義 Phones 的建構函式</summary>
+                this.office = office;
+                this.mobiles = mobiles;
+            }
+
+            function Contactor(name, phones, email) {
+                ///<summary>定義 ContactInfo 的建構函式</summary>
+                this.name = name;
+                this.phones = phones;
+                this.email = email;
+            }
+
+            //建立物件, 並同時給值
+            var contactor01 = new Contactor("Jasper", new Phones("02-2123-4567", ["0912-345-678", "0912-876-543"]), "jasper@abc.com");
+            //建立物件, 後續才給值
+            var contactor02 = new Contactor();
+            contactor02.name = "Judy";
+            contactor02.phones = new Phones();
+            contactor02.phones.office = "02-2321-7654";
+            contactor02.phones.mobiles = null;
+            contactor02.email = "judy@abc.com";
+
+            document.write("<pre>");
+            iterateObjectProperties(contactor01);
+            document.write("</pre>");
+
+            document.write("<pre>");
+            iterateObjectProperties(contactor02);
+            document.write("</pre>");
+
+            //輸出結果:
+            //39:42.343 I am a red shape, with a border that is 2 thick
+            //
+            //39:42.362 obj[color] = red
+            //39:42.372 obj[borderThickness] = 2
+            //39:42.382 obj[describe] = function () {
+            //    document.write("");
+            //    dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+            //    document.write("");
+            //
+            //04:49.864 obj[name] = Jasper
+            //04:49.875 obj[phones] = [object Object]
+            //04:49.886     obj[office] = 02-2123-4567
+            //04:49.895     obj[mobiles] = 0912-345-678,0912-876-543
+            //04:49.907             obj[0] = 0912-345-678
+            //04:49.933             obj[1] = 0912-876-543
+            //04:49.942 obj[email] = jasper@abc.com
+            //
+            //04:49.959 obj[name] = Judy
+            //04:49.970 obj[phones] = [object Object]
+            //04:49.979     obj[office] = 02-2321-7654
+            //04:49.988     obj[mobiles] = null
+            //04:50.001 obj[email] = judy@abc.com
+
+        }
+
+        // =================================================
+        // 用以說明 prototype 的觀念
+        // =================================================
+        function testPrototype01() {
+            /// <summary>用以說明 prototype 的觀念 </summary>
+            function Shape(color, borderThickness) {
+                this.color = color;
+                this.borderThickness = borderThickness;
+                this.describe = function () {
+                    document.write("<pre>");
+                    dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+                    document.write("</pre>");
+                }
+            }
+            var shape01 = new Shape("red", 2.0);
+            var shape02 = new Shape("blue", 3.0);
+            document.write("<pre>");
+            iterateObjectProperties(shape01, true);
+            iterateObjectProperties(shape02, true);
+            document.write("</pre>");
+            //
+            document.write("<pre>");
+            //以下的 shape01 及 shape02 的 __proto__ 都指向 Shape.prototype
+            dispLog("shape01.__proto__ === Shape.prototype ? " + (shape01.__proto__ === Shape.prototype));
+            dispLog("shape02.__proto__ === Shape.prototype ? " + (shape02.__proto__ === Shape.prototype));
+            dispLog("shape01.__proto__ === shape02.prototype ? " + (shape01.__proto__ === shape02.__proto__));
+            dispLog("");
+            //以下的 Shape.prototype.__proto__ === Object.prototype, 且 Shape.__proto__ === Function.prototype
+            //說明: Shape 其實是一個建構函式, 所以其 __proto__ 會指向 Function.prototype; 
+            //         而 Function.prototype.__proto__ 才會指向 Object.prototype
+            dispLog("Shape.prototype.__proto__ === Object.prototype ? " + (Shape.prototype.__proto__ === Object.prototype));
+            dispLog("Shape.__proto__ === Function.prototype ? " + (Shape.__proto__ === Function.prototype));
+            dispLog("Function.prototype.__proto__ === Object.prototype? " + (Function.prototype.__proto__ === Object.prototype));
+            //
+            document.write("</pre>");
+
+            //輸出結果:
+            //00:08.843 obj[color] = red
+            //00:08.860 obj[borderThickness] = 2
+            //00:08.874 obj[describe] = function () {
+            //    document.write("<pre>");
+            //    dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+            //    document.write("</pre>");
+            //}
+            //00:08.888 obj[color] = blue
+            //00:08.904 obj[borderThickness] = 3
+            //00:08.923 obj[describe] = function () {
+            //    document.write("<pre>");
+            //    dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+            //    document.write("</pre>");
+            //}
+            //
+            //00:08.950 shape01.__proto__ === Shape.prototype ? true
+            //00:08.966 shape02.__proto__ === Shape.prototype ? true
+            //00:08.978 shape01.__proto__ === shape02.prototype ? true
+            //00:08.994 
+            //00:09.007 Shape.prototype.__proto__ === Object.prototype ? true
+            //00:09.021 Shape.__proto__ === Function.prototype ? true
+            //00:09.038 Function.prototype.__proto__ === Object.prototype? true
+
+        }
+
+
+        // =================================================
+        // 用以說明 prototype 的觀念
+        // =================================================
+        function testPrototype02() {
+            /// <summary>用以說明 prototype 的觀念 (利用 prototype, 加入擴充方法) </summary>
+            function Shape(color, borderThickness) {
+                this.color = color;
+                this.borderThickness = borderThickness;
+            }
+
+            //在 Shape.prototye 加入一個擴充方法, 這個方法可以由多個 instances 呼叫
+            Shape.prototype.describe = function () {
+                document.write("<pre>");
+                dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+                document.write("</pre>");
+            }
+
+            var shape01 = new Shape("red", 2.0);
+            var shape02 = new Shape("blue", 3.0);
+            document.write("<pre>");
+            iterateObjectProperties(shape01, true);
+            iterateObjectProperties(shape02, true);
+            document.write("</pre>");
+            //每一個 instances 都可以呼叫經由 建構函式的 prototype 作擴充的方法
+            shape01.describe();
+            shape02.describe();
+
+            //輸出結果:
+            //00:09.139 obj[color] = red
+            //00:09.152 obj[borderThickness] = 2
+            //00:09.171 obj[color] = blue
+            //00:09.189 obj[borderThickness] = 3
+            //
+            //04:21.626 I am a red shape, with a border that is 2 thick
+            //04:21.657 I am a blue shape, with a border that is 3 thick
+        }
+
+
+        // =================================================
+        // 用以說明 prototype 的觀念
+        // =================================================
+        function testPrototype03() {
+            /// <summary>用以說明 prototype 的觀念 (利用 prototype, 加入擴充方法) </summary>
+            function Shape(color, borderThickness) {
+                this.color = color;
+                this.borderThickness = borderThickness;
+            }
+
+            //在 Shape.prototye 加入一個擴充方法, 這個方法可以由多個 instances 呼叫
+            Shape.prototype.describe = function () {
+                document.write("<pre>");
+                dispLog("I am a " + this.color + " shape, with a border that is " + this.borderThickness + " thick");
+                document.write("</pre>");
+            }
+
+            var shape01 = new Shape("red", 2.0);
+            var shape02 = new Shape("blue", 3.0);
+            document.write("<pre>");
+            dispLog("Shape.prototype.constructor === Shape ? " + (Shape.prototype.constructor === Shape));
+            dispLog("Shape.prototype.constructor = " + Shape.prototype.constructor);
+            dispLog("Function.prototype.constructor = " + Function.prototype.constructor);
+            dispLog("Object.prototype.constructor = " + Object.prototype.constructor);
+            document.write("</pre>");
+
+            //輸出結果:
+            //21:38.524 Shape.prototype.constructor === Shape ? true
+            //21:38.540 Shape.prototype.constructor = function Shape(color, borderThickness) {
+            //    this.color = color;
+            //    this.borderThickness = borderThickness;
+            //}
+            //
+            //21:38.556 Function.prototype.constructor = 
+            //function Function() {
+            //    [native code]
+            //}
+            //
+            //21:38.592 Object.prototype.constructor = 
+            //function Object() {
+            //    [native code]
+            //}
+        }
+
+        // =================================================
+        // 採用 Object.create() 
+        // =================================================
+        function createByCreateFunc00() {
+            /// <summary>採用 Object.create()  (前述方法總複習) </summary>
+
+            //-------------- version 01 ---------------------
+            function Car(desc) {
+                this.desc = desc;
+                this.color = "red";
+                this.getInfo = function getInfo() {
+                    return 'A ' + this.color + ' ' + this.desc + '.';
+                };
+            }
+            //instantiate object using the constructor function
+            var car = new Car('Porsche boxter');
+            car.color = "blue";
+            document.write("<pre>");
+            dispLog(car.getInfo());     //displays 'A blue Porsche boxter.'
+            document.write("</pre>");
+
+            //-------------- version 02 ---------------------
+            function Car2(desc) {
+                this.desc = desc;
+                this.color = "red";
+            }
+            Car2.prototype.getInfo = function () {
+                return 'A ' + this.color + ' ' + this.desc + '.';
+            };
+            var car2 = new Car2('Porsche boxter');
+            car2.color = "blue";
+            document.write("<pre>");
+            dispLog(car2.getInfo());     //displays 'A blue Porsche boxter.'
+            document.write("</pre>");
+
+            //-------------- version 03 ---------------------
+            function Car3(desc) {
+                this.desc = desc;
+                this.color = "red";
+            }
+            Car3.prototype = {
+                getInfo: function () {
+                    return 'A ' + this.color + ' ' + this.desc + '.';
+                },
+                drive: function () {
+                    return 'A ' + this.color + ' ' + this.desc + ' is driving ...';
+                },
+                stop: function () {
+                    return 'A ' + this.color + ' ' + this.desc + ' has stopped ...';
+                }
+            };
+            var car3 = new Car3('Porsche boxter');
+            car3.color = "blue";
+            document.write("<pre>");
+            dispLog(car3.getInfo());     //displays 'A blue Porsche boxter.'
+            dispLog(car3.drive());     //displays 'A blue Porsche boxter is driving ...'
+            dispLog(car3.stop());     //displays 'A blue Porsche boxter  has stopped ...'
+            document.write("</pre>");
+
+            //輸出結果:
+            //40:20.066 A blue Porsche boxter.
+            //
+            //40:20.102 A blue Porsche boxter.
+            //
+            //40:20.139 A blue Porsche boxter.
+            //40:20.153 A blue Porsche boxter is driving ...
+            //40:20.172 A blue Porsche boxter has stopped ...
+        }
+
+        // =================================================
+        // 採用 Object.create() 
+        // =================================================
+        function createByCreateFunc01() {
+            /// <summary>採用 Object.create()  (錯誤的示範) </summary>
+            function Car(desc) {
+                this.desc = desc;
+                this.color = "red";
+            }
+            Car.prototype = {
+                getInfo: function () {
+                    return 'A ' + this.color + ' ' + this.desc + '.';
+                }
+            };
+            //instantiate object using the constructor function
+            var car = Object.create(Car.prototype);
+            car.color = "blue";
+
+            //以下會出現 undefined, 主因在於 Object.create() 是利用 prototype, 但不經由 constructor 作初始化
+            //The description is lost. So why is that? Simple; the create() method only uses the prototype and 
+            //not the constructor. Hence, Object.create() is an excellent choice for creating an object without 
+            //going through its constructor.
+            document.write("<pre>");
+            dispLog(car.getInfo()); //displays 'A blue undefined.' ??!
+            document.write("</pre>");
+
+            //輸出結果:
+            //51:34.411 A blue undefined.
+        }
+
+        // =================================================
+        // 採用 Object.create() 
+        // =================================================
+        function createByCreateFunc02() {
+            /// <summary>採用 Object.create()  (修正因為沒有經過 constructor 作初始化, 造成 undefined 的問題) </summary>
+            //var Car = Object.create(null); //this is an empty object, like {}  ==> Actually, this is not true:
+            //var Car = Object.create(null); //this is an empty object - no toString() etc.
+            //var Car = Object.create(Object.prototype); // this is like {}
+
+            //var Car = Object.create(null); //this is an empty object - no toString() etc.
+            var Car = Object.create(Object.prototype); //this is an object - include toString() ... methods
+            Car.prototype = {
+                getInfo: function () {
+                    return 'A ' + this.color + ' ' + this.desc + '.';
+                }
+            };
+
+            var car = Object.create(Car.prototype, {
+                //value properties
+                color: { writable: true, configurable: true, value: 'red' },
+                //concrete desc value
+                rawDesc: { writable: false, configurable: true, value: 'Porsche boxter' },
+                // data properties (assigned using getters and setters)
+                desc: {
+                    configurable: true,
+                    get: function () {
+                        return this.rawDesc.toUpperCase();
+                    },
+                    set: function (value) {
+                        this.rawDesc = value.toLowerCase();
+                    }
+                }
+            });
+            car.color = 'blue';
+            document.write("<pre>");
+            dispLog(car.getInfo()); //displays 'A blue PORSCHE BOXTER.'
+            document.write("</pre>");
+
+            //輸出結果:
+            //20:40.488 A blue PORSCHE BOXTER.
+        }
+
+        // =================================================
+        // 採用 Object.create() 
+        // =================================================
+        function createByCreateFunc03() {
+            /// <summary>採用 Object.create()  (Mozila 的範例) </summary>
+            // Shape - superclass
+            function Shape() {
+                this.x = 0;
+                this.y = 0;
+            }
+
+            // superclass method
+            Shape.prototype.move = function (x, y) {
+                this.x += x;
+                this.y += y;
+                dispLog('Shape moved to x:' + x + ' y:' + y);
+                //console.info('Shape moved.');
+            };
+
+            // Rectangle - subclass
+            function Rectangle() {
+                Shape.call(this);       // call super constructor.
+            }
+
+            // subclass extends superclass
+            Rectangle.prototype = Object.create(Shape.prototype);
+            Rectangle.prototype.constructor = Rectangle;
+
+            var rect = new Rectangle();
+
+            document.write("<pre>");
+            dispLog('Is rect an instance of Rectangle? ' + (rect instanceof Rectangle)); // true
+            dispLog('Is rect an instance of Shape? ' + (rect instanceof Shape)); // true
+            //console.log('Is rect an instance of Rectangle? ' + (rect instanceof Rectangle)); // true
+            //console.log('Is rect an instance of Shape? ' + (rect instanceof Shape)); // true 
+            rect.move(1, 1); // Outputs, 'Shape moved to x:1 y:1'
+            document.write("</pre>");
+
+            //輸出結果:
+            //30:41.466 Is rect an instance of Rectangle? true
+            //30:41.484 Is rect an instance of Shape? true
+            //30:41.499 Shape moved to x:1 y:1
+        }
+
+        //==============================================
+        window.onload = function () {
+            createByObjectLiteral();
+            document.write("<hr />");
+            createByConstructor01();
+            document.writeln("<hr />");
+            createByConstructor02();
+            document.writeln("<hr />");
+            testPrototype01();
+            document.writeln("<hr />");
+            testPrototype02();
+            document.writeln("<hr />");
+            testPrototype03();
+            document.writeln("<hr />");
+            createByCreateFunc00();
+            document.writeln("<hr />");
+            createByCreateFunc01();
+            document.writeln("<hr />");
+            createByCreateFunc02();
+            document.writeln("<hr />");
+            createByCreateFunc03();
+
+        }
+
+    </script>
+</head>
+<body>
+    <ul id="foo"></ul>
+</body>
+</html>
