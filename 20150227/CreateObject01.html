@@ -490,6 +490,7 @@
             }
 
             // subclass extends superclass
+            // Rectangle.prototype 原本是 Rectangle, 經下列敍述, 改為 Shape
             Rectangle.prototype = Object.create(Shape.prototype);
             Rectangle.prototype.constructor = Rectangle;
 

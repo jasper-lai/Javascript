@@ -1,0 +1,755 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <script type="text/javascript" src="../Scripts/jquery-1.11.2.js"></script>
+    <script type="text/javascript" src="../Scripts/MyUtility.js"></script>
+    <script type="text/javascript">
+
+        // =================================================
+        // 資訊隱藏 (封裝)
+        // =================================================
+        function testEncapsulation01() {
+            /// <summary>利用 private varialble 的機制, 外界只能使用 getXXXX, setXXXX method; 但對使用元件的人會很麻煩 </summary>
+            // ==========================
+            // Closure 機制: 參數或本地變數, 在執行完後, 按理應該消失; 但卻會保留在 內部函式 裡
+            // ==========================
+            // ** 下列範例, 外界完全只能用 getXXXX, setXXXX 作處理; 而不能直接存取屬性
+
+            function Person(name, age) {
+                var occupation;                                     // private variable (or private property)
+                this.getOccupation = function () { return occupation; };
+                this.setOccupation = function (newOcc) {
+                    occupation = newOcc;
+                };
+
+                // accessors for name and age
+                this.getName = function () { return name; };
+                this.setName = function (newName) { name = newName; };
+                this.getAge = function () { return age; };
+                this.setAge = function (newAge) { age = newAge; };
+            }
+
+            var jasper = new Person("Jasper", 46);
+            jasper.setOccupation("IT");
+            dispLog("name=" + jasper.getName() + " age=" + jasper.getAge() + " occpupation=" + jasper.getOccupation());
+
+            // 執行結果:
+            // 09:29.411 name=Jasper age=46 occpupation=IT
+        }
+
+        // =================================================
+        // 資訊隱藏 (封裝)
+        // =================================================
+        function testEncapsulation02() {
+            /// <summary>利用 Closure 的機制, 進行屬性封裝 for getters and setters </summary>
+            // ==========================
+            // Closure: 參數或本地變數, 在執行完後, 按理應該消失; 但卻會保留在 內部函式 裡
+            // ==========================
+            // ** 下列範例, 外界無法直接存取到 _petName, _petAge (資訊隱藏了...), 必須透過 petName, petAge 屬性作處理 
+            //      這樣作的好處是可以在使用者異動屬性值時, 可以預作檢查, 以避免傳入不合法的值
+
+            function Pet(pName, pAge) {
+
+                //如果傳入的 物件實例 (this) , 不是繼承 Pet, 則建立一個新的 ...
+                if (!(this instanceof Pet)) {
+                    return new Pet(pName, pAge);
+                }
+
+                //// This is a workaround for an error in the ECMAScript Language Specification
+                //// which causes 'this' to be set incorrectly for inner functions.
+                // "local variable": to keep the original instance
+                var self = this;                            
+
+                // "private properties" ?! 以 "_" 開頭的名稱,作為 private 
+                //註: 不能用 var, 不然透過 constructor 直接指定, 會失效, 造成仍然是 undefined 的狀況
+                //      --> 原因推測: 因為 var 宣告的 _petName, _petAge 沒有綁定在任何 method, 導致建構子結束, 變數亦跟著消失
+                //      --> 相對的, var self 有其它 method 綁定, 所以不會出問題
+                this._petName = pName;
+                this._petAge = pAge;
+                //var _petName = pName;
+                //var _petAge = pAge;
+
+                // "privileged method" (看不出與 public method 有何差異 @@)
+                // 這裡可以供外部呼叫, 以存取屬性
+                // 注意: petName, age 這2個屬性, 在後面另以 prototype 的方式定義
+                // 注意: 這樣的寫法, 每一個 instance, 都會有一份該方法 ...
+                this.getDetail = function () {     
+                    return "petName=" + self.petName + " petAge=" + self.petAge;
+                }
+            }
+
+            //當然, 這樣的寫法, 也是很今人厭煩的, 但筆者目前找不到其它替代方案 @@
+            Pet.prototype = {
+                //定義 petName 屬性
+                get petName() {
+                    return this._petName;
+                },
+                set petName(val) {
+                    this._petName = val;
+                },
+                //定義 petAge 屬性
+                get petAge() {
+                    return this._petAge;
+                },
+                set petAge(val) {
+                    this._petAge = val;
+                },
+            }
+            //Pet.prototype.age = 1;
+            //
+            var pet1 = new Pet("Tony1", 1);
+            dispLog(pet1.getDetail());
+
+            //
+            var pet2 = new Pet();
+            pet2.petName = "Tony2";
+            pet2.petAge = 5;
+            dispLog(pet2.getDetail());
+            //
+            pet2.petName = "Tony2-1";
+            pet2.petAge = 6;
+            dispLog(pet2.getDetail());
+
+            // 執行結果:
+            // 09:29.411 petName=Tony1 petAge=1
+            // 09:29.411 petName=Tony2 petAge=5
+            // 09:29.411 petName=Tony2-1 petAge=6
+        }
+
+        // =================================================
+        // 繼承 
+        // =================================================
+        function testInherit01() {
+            /// <summary>利用換預設 prototype 的機制, 模擬繼承; 但沒有作方法的 override </summary>
+            // ** 下列範例的類別結構 
+            //          Object
+            //          Product
+            //          Food
+            //  Wine            SportDrink
+
+            function Product(name, price) {
+
+                // 如果傳入的 物件實例 (this) , 不是繼承 Product, 則建立一個新的 ...
+                if (!(this instanceof Product)) {
+                    return new Product(name, price);
+                }
+
+                //public properties
+                this.name = name;
+                this.price = price;
+
+                if (price < 0) {
+                    throw RangeError('Cannot create product ' +
+                                      this.name + ' with a negative price');
+                }
+
+                //// 建立一個方法 (這個會造成每個 instance 都有一份)
+                //// 執行 iterateObjectProperties(cheese, true); 程式段, 會顯示 getDetail 的內容 (代表屬於各自的 instance)
+                //// 執行 iterateObjectProperties(cheese2, true); 程式段 會顯示 getDetail 的內容 (代表屬於各自的 instance)
+                //this.getDetail = function () {
+                //    return "name=" + this.name + " price=" + this.price;
+                //}
+
+                return this;
+            }
+            // 建立一個方法  (這個會造成所有 instance 共用一份)
+            //// 執行 iterateObjectProperties(cheese, true); 程式段, 不會顯示 getDetail 的內容 (代表共用 Product.prototype.getDetail)
+            //// 執行 iterateObjectProperties(cheese2, true); 程式段, 不會顯示 getDetail 的內容 (代表共用 Product.prototype.getDetail)
+            Product.prototype.getDetail = function () {
+                return "name=" + this.name + " price=" + this.price;
+            }
+
+            // ------------------------------------------
+            function Food(name, price) {
+                // 如果傳入的 物件實例 (this) , 不是繼承 Food, 則建立一個新的 ...
+                if (!(this instanceof Food)) {
+                    return new Food(name, price);
+                }
+                //
+                Product.call(this, name, price);
+                this.category = 'food';
+            }
+            // Food.prototype 原本是 Food, 但強制轉換為 Product 
+            Food.prototype = Object.create(Product.prototype);
+            Food.prototype.constructor = Food;      //把 constructor 改回正確值, 原來的範例沒有這一列敍述
+
+            // ------------------------------------------
+            function Wine(name, price) {
+                // 如果傳入的 物件實例 (this) , 不是繼承 Wine, 則建立一個新的 ...
+                if (!(this instanceof Wine)) {
+                    return new Wine(name, price);
+                }
+                //
+                Food.call(this, name, price);
+                this.subCategory = 'wine';
+            }
+            Wine.prototype = Object.create(Food.prototype);
+            Wine.prototype.constructor = Wine;      //把 constructor 改回正確值, 原來的範例沒有這一列敍述
+
+            // ------------------------------------------
+            function SportDrink(name, price) {
+                // 如果傳入的 物件實例 (this) , 不是繼承 SportDrink, 則建立一個新的 ...
+                if (!(this instanceof SportDrink)) {
+                    return new SportDrink(name, price);
+                }
+                //
+                Food.call(this, name, price);
+                this.subCategory = 'sport drink';
+            }
+            SportDrink.prototype = Object.create(Food.prototype);
+            SportDrink.prototype.constructor = SportDrink;      //把 constructor 改回正確值, 原來的範例沒有這一列敍述
+
+            // ------------------------------------------
+            var cheese = new Food('feta', 5);
+            var cheese2 = new Food('cheddar ', 6);
+            var beer = new Wine('taiwan beer', 30);
+            var pocarri = new SportDrink('pocarri sweet', 25);
+
+            //
+            dispLog("-------");
+            dispLog(cheese.getDetail());
+            dispLog(cheese2.getDetail());
+            dispLog(beer.getDetail());
+            dispLog(pocarri.getDetail());
+            dispLog("-------");
+            //
+            dispLog('Is cheese an instance of Food? ' + (cheese instanceof Food));
+            dispLog('Is cheese an instance of Product? ' + (cheese instanceof Product));
+            dispLog('Is beer an instance of Wine? ' + (beer instanceof Wine));
+            dispLog('Is beer an instance of Food? ' + (beer instanceof Food));
+            dispLog('Is beer an instance of Product? ' + (beer instanceof Product));
+            //
+            dispLog("-------");
+            iterateObjectProperties(cheese, true);
+            dispLog("-------");
+            iterateObjectProperties(cheese2, true);
+            dispLog("-------");
+            iterateObjectProperties(beer);
+            dispLog("-------");
+            iterateObjectProperties(pocarri);
+
+            // 執行結果:
+            //09:31.231 -------
+            //09:31.278 name=feta price=5
+            //09:31.286 name=cheddar  price=6
+            //09:31.296 name=taiwan beer price=30
+            //09:31.306 name=pocarri sweet price=25
+            //09:31.317 -------
+            //09:31.323 Is cheese an instance of Food? true
+            //09:31.330 Is cheese an instance of Product? true
+            //09:31.338 Is beer an instance of Wine? true
+            //09:31.345 Is beer an instance of Food? true
+            //09:31.353 Is beer an instance of Product? true
+            //09:31.360 -------
+            //09:31.368 obj[name] = feta
+            //09:31.376 obj[price] = 5
+            //09:31.385 obj[category] = food
+            //09:31.392 -------
+            //09:31.399 obj[name] = cheddar 
+            //09:31.407 obj[price] = 6
+            //09:31.415 obj[category] = food
+            //09:31.422 -------
+            //09:31.430 obj[name] = taiwan beer
+            //09:31.437 obj[price] = 30
+            //09:31.445 obj[category] = food
+            //09:31.453 obj[subCategory] = wine
+            //09:31.461 obj[constructor] = function Wine(name, price) {
+            //    // 如果傳入的 物件實例 (this) , 不是繼承 Wine, 則建立一個新的 ...
+            //    if (!(this instanceof Wine)) {
+            //        return new Wine(name, price);
+            //    }
+            //    //
+            //    Food.call(this, name, price);
+            //    this.subCategory = 'wine';
+            //}
+            //09:31.469 obj[getDetail] = function () {
+            //    return "name=" + this.name + " price=" + this.price;
+            //}
+            //09:31.480 -------
+            //09:31.491 obj[name] = pocarri sweet
+            //09:31.502 obj[price] = 25
+            //09:31.513 obj[category] = food
+            //09:31.524 obj[subCategory] = sport drink
+            //09:31.533 obj[constructor] = function SportDrink(name, price) {
+            //    // 如果傳入的 物件實例 (this) , 不是繼承 SportDrink, 則建立一個新的 ...
+            //    if (!(this instanceof SportDrink)) {
+            //        return new SportDrink(name, price);
+            //    }
+            //    //
+            //    Food.call(this, name, price);
+            //    this.subCategory = 'sport drink';
+            //}
+            //09:31.541 obj[getDetail] = function () {
+            //    return "name=" + this.name + " price=" + this.price;
+            //}
+
+        }
+
+
+        // =================================================
+        // 繼承 + 多型
+        // =================================================
+        function testPolymorphism01() {
+            /// <summary>利用換預設 prototype 的機制, 模擬繼承; 有作方法的 override; 可以呈現多型的效果 </summary>
+            // ** 下列範例的類別結構 
+            //          Object
+            //          Product
+            //          Food
+            //  Wine            SportDrink
+
+            function Product(name, price) {
+
+                // 如果傳入的 物件實例 (this) , 不是繼承 Product, 則建立一個新的 ...
+                if (!(this instanceof Product)) {
+                    return new Product(name, price);
+                }
+
+                //public properties
+                this.name = name;
+                this.price = price;
+
+                if (price < 0) {
+                    throw RangeError('Cannot create product ' +
+                                      this.name + ' with a negative price');
+                }
+
+                //// 建立一個方法 (這個會造成每個 instance 都有一份)
+                //// 執行 iterateObjectProperties(cheese, true); 程式段, 會顯示 getDetail 的內容 (代表屬於各自的 instance)
+                //// 執行 iterateObjectProperties(cheese2, true); 程式段 會顯示 getDetail 的內容 (代表屬於各自的 instance)
+                //this.getDetail = function () {
+                //    return "name=" + this.name + " price=" + this.price;
+                //}
+
+                return this;
+            }
+            // 建立一個方法  (這個會造成所有 instance 共用一份)
+            //// 執行 iterateObjectProperties(cheese, true); 程式段, 不會顯示 getDetail 的內容 (代表共用 Product.prototype.getDetail)
+            //// 執行 iterateObjectProperties(cheese2, true); 程式段, 不會顯示 getDetail 的內容 (代表共用 Product.prototype.getDetail)
+            Product.prototype.getDetail = function () {
+                return "name=" + this.name + " price=" + this.price;
+            }
+
+            // ------------------------------------------
+            function Food(name, price) {
+                // 如果傳入的 物件實例 (this) , 不是繼承 Food, 則建立一個新的 ...
+                if (!(this instanceof Food)) {
+                    return new Food(name, price);
+                }
+                //
+                Product.call(this, name, price);
+                this.category = 'food';
+            }
+            // Food.prototype 原本是 Food, 但強制轉換為 Product 
+            Food.prototype = Object.create(Product.prototype);
+            Food.prototype.constructor = Food;      //把 constructor 改回正確值, 原來的範例沒有這一列敍述
+            Food.prototype.getDetail = function () {        // 建立一個方法 (override 祖先)
+                return "name=" + this.name + " price=" + this.price + " category=" + this.category;
+            }
+
+            // ------------------------------------------
+            function Wine(name, price) {
+                // 如果傳入的 物件實例 (this) , 不是繼承 Wine, 則建立一個新的 ...
+                if (!(this instanceof Wine)) {
+                    return new Wine(name, price);
+                }
+                //
+                Food.call(this, name, price);
+                this.subCategory = 'wine';
+            }
+            Wine.prototype = Object.create(Food.prototype);
+            Wine.prototype.constructor = Wine;      //把 constructor 改回正確值, 原來的範例沒有這一列敍述
+            Wine.prototype.getDetail = function () {        // 建立一個方法 (override 祖先)
+                return "name=" + this.name + " price=" + this.price + " category=" + this.category + " subcategory=" + this.subCategory;
+            }
+
+            // ------------------------------------------
+            function SportDrink(name, price) {
+                // 如果傳入的 物件實例 (this) , 不是繼承 SportDrink, 則建立一個新的 ...
+                if (!(this instanceof SportDrink)) {
+                    return new SportDrink(name, price);
+                }
+                //
+                Food.call(this, name, price);
+                this.subCategory = 'sport drink';
+            }
+            SportDrink.prototype = Object.create(Food.prototype);
+            SportDrink.prototype.constructor = SportDrink;      //把 constructor 改回正確值, 原來的範例沒有這一列敍述
+            // 建立一個方法 (override 祖先)
+            SportDrink.prototype.getDetail = function () {
+                return "name=" + this.name + " price=" + this.price + " category=" + this.category + " subcategory=" + this.subCategory;
+            }
+
+            // ------------------------------------------
+            var cheese = new Food('feta', 5);
+            var cheese2 = new Food('cheddar ', 6);
+            var beer = new Wine('taiwan beer', 30);
+            var pocarri = new SportDrink('pocarri sweet', 25);
+
+            //
+            dispLog("-------");
+            dispLog(cheese.getDetail());
+            dispLog(cheese2.getDetail());
+            dispLog(beer.getDetail());
+            dispLog(pocarri.getDetail());
+            dispLog("-------");
+            //
+            dispLog('Is cheese an instance of Food? ' + (cheese instanceof Food));
+            dispLog('Is cheese an instance of Product? ' + (cheese instanceof Product));
+            dispLog('Is beer an instance of Wine? ' + (beer instanceof Wine));
+            dispLog('Is beer an instance of Food? ' + (beer instanceof Food));
+            dispLog('Is beer an instance of Product? ' + (beer instanceof Product));
+            //
+            dispLog("-------");
+            iterateObjectProperties(cheese, true);
+            dispLog("-------");
+            iterateObjectProperties(cheese2, true);
+            dispLog("-------");
+            iterateObjectProperties(beer);
+            dispLog("-------");
+            iterateObjectProperties(pocarri);
+
+            // 執行結果:
+            //09:31.573 -------
+            //09:31.581 name=feta price=5 category=food
+            //09:31.589 name=cheddar  price=6 category=food
+            //09:31.597 name=taiwan beer price=30 category=food subcategory=wine
+            //09:31.605 name=pocarri sweet price=25 category=food subcategory=sport drink
+            //09:31.620 -------
+            //09:31.628 Is cheese an instance of Food? true
+            //09:31.635 Is cheese an instance of Product? true
+            //09:31.643 Is beer an instance of Wine? true
+            //09:31.651 Is beer an instance of Food? true
+            //09:31.659 Is beer an instance of Product? true
+            //09:31.667 -------
+            //09:31.676 obj[name] = feta
+            //09:31.684 obj[price] = 5
+            //09:31.692 obj[category] = food
+            //09:31.711 -------
+            //09:31.720 obj[name] = cheddar 
+            //09:31.728 obj[price] = 6
+            //09:31.736 obj[category] = food
+            //09:31.744 -------
+            //09:31.752 obj[name] = taiwan beer
+            //09:31.761 obj[price] = 30
+            //09:31.769 obj[category] = food
+            //09:31.778 obj[subCategory] = wine
+            //09:31.786 obj[constructor] = function Wine(name, price) {
+            //    // 如果傳入的 物件實例 (this) , 不是繼承 Wine, 則建立一個新的 ...
+            //    if (!(this instanceof Wine)) {
+            //        return new Wine(name, price);
+            //    }
+            //    //
+            //    Food.call(this, name, price);
+            //    this.subCategory = 'wine';
+            //}
+            //09:31.797 obj[getDetail] = function () {        // 建立一個方法 (override 祖先)
+            //    return "name=" + this.name + " price=" + this.price + " category=" + this.category + " subcategory=" + this.subCategory;
+            //}
+            //09:31.805 -------
+            //09:31.813 obj[name] = pocarri sweet
+            //09:31.821 obj[price] = 25
+            //09:31.829 obj[category] = food
+            //09:31.837 obj[subCategory] = sport drink
+            //09:31.846 obj[constructor] = function SportDrink(name, price) {
+            //    // 如果傳入的 物件實例 (this) , 不是繼承 SportDrink, 則建立一個新的 ...
+            //    if (!(this instanceof SportDrink)) {
+            //        return new SportDrink(name, price);
+            //    }
+            //    //
+            //    Food.call(this, name, price);
+            //    this.subCategory = 'sport drink';
+            //}
+            //09:31.854 obj[getDetail] = function () {
+            //    return "name=" + this.name + " price=" + this.price + " category=" + this.category + " subcategory=" + this.subCategory;
+            //}
+        }
+
+        // ===============================================
+        // 命名空間 (namespace)
+        // =================================================
+        function testNamespace01() {
+            /// <summary>利用物件的屬性來模擬命名空間 </summary>
+            var MSDNMagNS = {};
+            MSDNMagNS.Examples = {};    // nested namespace "Examples", 注意, 前端不需 var
+
+            MSDNMagNS.Examples.Pet = function (name, age) {
+                this.name = name;
+                this.age = age;
+            };
+
+            MSDNMagNS.Examples.Pet.prototype.getDetail = function () {
+                return "name=" + this.name + " age=" + this.age;
+            };
+
+            var pet01 = new MSDNMagNS.Examples.Pet("Tony", 2);
+            dispLog("pet01: " + pet01.getDetail());
+
+            // 命名空間太長了, 所以用縮寫
+            // MSDNMagNS.Examples and Pet definition...
+            // think  "using Eg = MSDNMagNS.Examples;" 
+            var Eg = MSDNMagNS.Examples;
+            var pet02 = new Eg.Pet("Tony2", 3);
+            dispLog("pet02: " + pet02.getDetail());
+
+            // 執行結果
+            // 09:31.889 pet01: name=Tony age=2
+            // 09:31.897 pet02: name=Tony2 age=3
+
+        }
+
+        //// =================================================
+        //// 繼承
+        //// =================================================
+        //function testInheritA1() {
+        //    /// <summary>利用換預設 prototype 的機制, 模擬繼承 </summary>
+        //    // 為了凸顯主題, 這裡就不作 setter 與 getter 了
+        //    // ** 下列範例, Dog 繼承自 Pet
+
+        //    // -------------------------
+        //    // [C#]
+        //    // public class Pet
+        //    // {
+        //    //    // constructor 
+        //    //    Pet(string pName, int pAge)
+        //    // }
+        //    // -------------------------
+        //    function Pet(pName, pAge) {
+        //        this.getName = function () { return pName; };
+        //        this.setName = function (newName) { pName = newName; };
+        //        this.getAge = function () { return pAge; };
+        //        this.setAge = function (newAge) { pAge = newAge };
+        //    }
+
+        //    Pet.prototype.getDetail = function () {
+        //        return "This pet's name is: " + this.getName() + ", and its age is: " + this.getAge();
+        //    };
+        //    // end of class Pet
+        //    var pet = new Pet("阿福", 3);
+        //    dispLog(pet.getDetail());
+
+        //    // -------------------------
+        //    // [C#]
+        //    // public class Dog : Pet
+        //    // {
+        //    //    // constructor 
+        //    //    Dog(string pName, int pAge, string pBreed)
+        //    //    { 
+        //    //        base(pName, pAge);
+        //    //    }
+        //    // }
+        //    // -------------------------
+        //    // breed: 品種
+        //    function Dog(pName, pAge, pBreed) {
+        //        // [C#]
+        //        // 類似呼叫 base(name)
+        //        Pet.call(this, pName, pAge);       //建立 Pet 物件
+        //        this.getBreed = function () { return pBreed; };      // Dog 新增的屬性
+        //        // Breed doesn't change, obviously! It's read only.
+        //        // this.setBreed = function(newBreed) { name = newName; };
+        //    }
+
+        //    // Dog.prototype 繼承自 Pet.prototype
+        //    // Dog.prototype = new Pet();
+        //    Dog.prototype = Object.create(Pet.prototype);
+
+        //    // remember that Pet.prototype.constructor points to Pet.
+        //    // We want our Dog instances' constructor to point to Dog.
+        //    // 記得要裝 Dog.prototype.constructor 改回 Dog 
+        //    Dog.prototype.constructor = Dog;
+
+        //    // Now we override Pet.prototype.getDetail
+        //    Dog.prototype.getDetail = function () {
+        //        return "This dog's name is: " + this.getName() +
+        //            ", and its age is: " + this.getAge() +
+        //            ", and its breed is: " + this.getBreed();
+        //    };
+        //    // end of class Dog
+
+        //    var dog = new Dog("Tony", 5, "米格魯");
+        //    // test the new toString()
+        //    dispLog(dog.getDetail());
+
+        //    // Testing instanceof (similar to the is operator)
+        //    dispLog("dog instanceof Dog ? " + (dog instanceof Dog));            // true
+        //    dispLog("dog instanceof Pet) ? " + (dog instanceof Pet));               // true
+        //    dispLog("dog instanceof Object ? " + (dog instanceof Object));      // true
+
+        //    //輸出結果:
+        //    //53:42.228 This pet's name is: 阿福, and its age is: 3
+        //    //53:42.235 This dog's name is: Tony, and its age is: 5, and its breed is: 米格魯
+        //    //53:42.243 dog instanceof Dog ? true
+        //    //53:42.250 dog instanceof Pet) ? true
+        //    //53:42.258 dog instanceof Object ? true
+
+        //}
+
+        //// =================================================
+        //// 繼承
+        //// =================================================
+        //function testInheritA2() {
+        //    /// <summary>利用換預設 prototype 的機制, 模擬繼承 </summary>
+        //    // 加上 setter 與 getter ...
+        //    // ** 下列範例, Dog 繼承自 Pet; 且採用屬性的方式作處理 (不再是 getXXXX, setXXXX)
+
+        //    function Pet(pName, pAge) {
+
+        //        //如果傳入的 物件實例 (this) , 不是繼承 Pet, 則建立一個新的 ...
+        //        if (!(this instanceof Pet)) {
+        //            return new Pet(pName, pAge);
+        //        }
+
+        //        //// This is a workaround for an error in the ECMAScript Language Specification
+        //        //// which causes 'this' to be set incorrectly for inner functions.
+        //        // "local variable": to keep the original instance
+        //        var self = this;
+
+        //        // "private properties" ?! 以 "_" 開頭的名稱,作為 private 
+        //        //註: 不能用 var, 不然透過 constructor 直接指定, 會失效, 造成仍然是 undefined 的狀況
+        //        //      --> 原因推測: 因為 var 宣告的 _petName, _petAge 沒有綁定在任何 method, 導致建構子結束, 變數亦跟著消失
+        //        //      --> 相對的, var self 有其它 method 綁定, 所以不會出問題
+        //        this._petName = pName;
+        //        this._petAge = pAge;
+        //        //var _petName = pName;
+        //        //var _petAge = pAge;
+
+        //        // "privileged method" (看不出與 public method 有何差異 @@)
+        //        // 這裡可以供外部呼叫, 以存取屬性
+        //        // 注意: petName, age 這2個屬性, 在後面另以 prototype 的方式定義
+        //        // 注意: 這樣的寫法, 每一個 instance, 都會有一份該方法 ...
+        //        this.getDetail = function () {
+        //            return "petName=" + self.petName + " petAge=" + self.petAge;
+        //        }
+        //    }
+
+        //    //當然, 這樣的寫法, 也是很今人厭煩的, 但筆者目前找不到其它替代方案 @@
+        //    Pet.prototype = {
+        //        //定義 petName 屬性
+        //        get petName() {
+        //            return this._petName;
+        //        },
+        //        set petName(val) {
+        //            this._petName = val;
+        //        },
+        //        //定義 petAge 屬性
+        //        get petAge() {
+        //            return this._petAge;
+        //        },
+        //        set petAge(val) {
+        //            this._petAge = val;
+        //        },
+        //    }
+        //    //Pet.prototype.age = 1;
+        //    //
+        //    var pet1 = new Pet("Tony1", 1);
+        //    dispLog(pet1.getDetail());
+
+        //    //// -------------------------------------------------
+
+        //    function Dog(pName, pAge, pBreed) {
+
+        //        //如果傳入的 物件實例 (this) , 不是繼承 Dog, 則建立一個新的 ...
+        //        if (!(this instanceof Dog)) {
+        //            return new Dog(pName, pAge, pBreed);
+        //        }
+
+        //        Pet.call(this, pName, pAge);       //建立 Pet 物件
+        //        //this._petBreed = pBreed;
+        //    }
+
+        //    // Dog.prototype 繼承自 Pet.prototype
+        //    // Dog.prototype = new Pet();
+        //    Dog.prototype = Object.create(Pet.prototype, {
+        //        ////value properties
+        //        //color: { writable: true, configurable: true, value: 'red' },
+        //        //concrete petBreed value
+        //        _petBreed: { writable: false, configurable: true, value: ' ' },
+        //        // data properties (assigned using getters and setters)
+        //        petBreed: {
+        //            configurable: true,
+        //            get: function () {
+        //                return this._petBreed;
+        //            },
+        //            set: function (value) {
+        //                this._petBreed = value;
+        //            }
+        //        }
+        //    });
+
+        //    // remember that Pet.prototype.constructor points to Pet.
+        //    // We want our Dog instances' constructor to point to Dog.
+        //    // 記得要裝 Dog.prototype.constructor 改回 Dog 
+        //    Dog.prototype.constructor = Dog;
+
+        //    ////當然, 這樣的寫法, 也是很今人厭煩的, 但筆者目前找不到其它替代方案 @@
+        //    //Dog.prototype = {
+        //    //    //定義 petBreed 屬性
+        //    //    get petBreed() {
+        //    //        return this._petBreed;
+        //    //    },
+        //    //    set petBreed(val) {
+        //    //        this._petBreed = val;
+        //    //    },
+        //    //}
+
+        //    // Now we override Pet.prototype.getDetail
+        //    Dog.prototype.getDetail = function () {
+        //        return "This dog's name is: " + this.petName +
+        //             ", and its age is: " + this.petAge +
+        //            ", and its breed is: " + this.petBreed;
+        //    };
+        //    // end of class Dog
+
+        //    var dog = new Dog("Tony", 5, "米格魯");
+        //    // test the new toString()
+        //    dispLog(dog.getDetail());
+
+        //    // Testing instanceof (similar to the is operator)
+        //    dispLog("dog instanceof Dog ? " + (dog instanceof Dog));            // true
+        //    dispLog("dog instanceof Pet) ? " + (dog instanceof Pet));               // true
+        //    dispLog("dog instanceof Object ? " + (dog instanceof Object));      // true
+
+        //    //輸出結果:
+
+
+        //}
+
+
+        //==============================================
+        window.onload = function () {
+
+            document.write("<hr />");
+            document.writeln("<pre>");
+            testEncapsulation01();
+            document.writeln("</pre>");
+
+            document.writeln("<hr />");
+            document.writeln("<pre>");
+            testEncapsulation02();
+            document.writeln("</pre>");
+
+            document.writeln("<hr />");
+            document.writeln("<pre>");
+            testInherit01();
+            document.writeln("</pre>");
+
+            document.writeln("<hr />");
+            document.writeln("<pre>");
+            testPolymorphism01();
+            document.writeln("</pre>");
+
+            document.writeln("<hr />");
+            document.writeln("<pre>");
+            testNamespace01();
+            document.writeln("</pre>");
+
+
+        }
+
+    </script>
+</head>
+<body>
+    <ul id="foo"></ul>
+</body>
+</html>
